@@ -4,42 +4,87 @@ import Sheet from "@mui/joy/Sheet";
 import Table from "@mui/joy/Table";
 import Typography from "@mui/joy/Typography";
 import Box from "@mui/joy/Box";
+import Select from "@mui/joy/Select";
+import Option from "@mui/joy/Option";
 
 const DAYS_IN_MONTH = 31;
 const baseURL = process.env.NEXT_PUBLIC_BASE_URL;
 
+function getCurrentMonth() {
+  const d = new Date();
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}`; // YYYY-MM
+}
+
 export default function TableComponent() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(getCurrentMonth());
 
-  // fetch nhân viên thật từ backend
+  // Load employees + attendance theo tháng
   useEffect(() => {
-    async function fetchEmployees() {
+    async function loadData() {
       try {
-        const res = await fetch(`${baseURL}employees`);
-        const data = await res.json();
+        setLoading(true);
 
-        const mapped = data.map((emp) => ({
-          id: emp.id,
-          name: emp.name,
-          attendance: Array(DAYS_IN_MONTH).fill(""),
-        }));
+        // 1) Employees
+        const er = await fetch(`${baseURL}employees`);
+        const employeesData = await er.json();
+
+        // 2) Attendance theo tháng
+        const ar = await fetch(`${baseURL}attendance?month=${month}`);
+        const attendanceData = await ar.json();
+
+        // Map attendance vào từng nhân viên
+        const mapped = employeesData.map((emp) => {
+          const row = Array(DAYS_IN_MONTH).fill("");
+          attendanceData
+            .filter((a) => a.EmployeeId === emp.id)
+            .forEach((a) => {
+              if (a.day >= 1 && a.day <= DAYS_IN_MONTH) {
+                row[a.day - 1] = a.value;
+              }
+            });
+
+          return { id: emp.id, name: emp.name, attendance: row };
+        });
 
         setEmployees(mapped);
-      } catch (err) {
-        console.error("Fetch employees failed", err);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchEmployees();
-  }, []);
+    loadData();
+  }, [month]);
+
+  // Lưu từng ô (upsert)
+  const saveCell = async (EmployeeId, day, value) => {
+    try {
+      await fetch(`${baseURL}attendance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          EmployeeId,
+          month,
+          day,
+          value,
+        }),
+      });
+    } catch (e) {
+      console.error("Save attendance failed", e);
+    }
+  };
 
   const handleChange = (empIndex, dayIndex, value) => {
     const updated = [...employees];
     updated[empIndex].attendance[dayIndex] = value;
     setEmployees(updated);
+
+    // Persist
+    saveCell(updated[empIndex].id, dayIndex + 1, value);
   };
 
   const calculateTotal = (attendance) =>
@@ -51,7 +96,7 @@ export default function TableComponent() {
     }, 0);
 
   if (loading) {
-    return <Typography>Đang tải danh sách nhân viên…</Typography>;
+    return <Typography>Đang tải dữ liệu…</Typography>;
   }
 
   return (
@@ -59,9 +104,13 @@ export default function TableComponent() {
       variant="outlined"
       sx={{ width: "100%", boxShadow: "sm", borderRadius: "sm", p: 2 }}
     >
-      <Typography level="h4" mb={2}>
-        BẢNG CHẤM CÔNG THEO THÁNG
-      </Typography>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+        <Typography level="h4">BẢNG CHẤM CÔNG</Typography>
+        <Select value={month} onChange={(_, v) => setMonth(v)} size="sm">
+          {/* Có thể sinh thêm option theo nhu cầu */}
+          <Option value={month}>{month}</Option>
+        </Select>
+      </Box>
 
       <Box sx={{ overflowX: "auto" }}>
         <Table borderAxis="both">
