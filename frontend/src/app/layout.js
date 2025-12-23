@@ -1,4 +1,4 @@
-import { Inter, Nunito, Poppins } from "next/font/google";
+import { Inter, Nunito } from "next/font/google";
 import "./globals.css";
 import "@fontsource-variable/nunito";
 import { CssBaseline, CssVarsProvider } from "@mui/joy";
@@ -9,14 +9,14 @@ const inter = Inter({ subsets: ["latin"] });
 const nunito = Nunito({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Timesheet Management App",
+  title: "HR Bạch Hổ – Hệ Thống Chấm Công",
   description:
-    "A Tool designed to track freelancers' work hours and calculate their pay based on the hours worked.",
+    "Hệ thống quản lý chấm công, ca trực và nhân sự bảo vệ tập trung của Bạch Hổ Security.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body className={nunito.className}>
         <CssVarsProvider>
           <CssBaseline />
