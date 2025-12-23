@@ -1,150 +1,88 @@
 "use client";
-const baseURL = process.env.NEXT_PUBLIC_BASE_URL;
-import TableComponent from "./components/TableComponent";
-import EmployeeDetail from "./components/EmployeeDetail";
-import convertMinutesToHours from "./utils/convertMinuteToHours";
-import formatRupiah from "./utils/formatRupiah";
-import { useState, useEffect } from "react";
-import getIdsAsString from "./utils/getIdsAsString";
-import calculateOvertime from "./utils/calculateOvertime";
+
+import { useState } from "react";
+
+const DAYS_IN_MONTH = 31;
+
+// mock data – sẽ thay bằng API sau
+const initialEmployees = [
+  {
+    id: 1,
+    name: "Nguyễn Văn A",
+    attendance: Array(DAYS_IN_MONTH).fill(""),
+  },
+  {
+    id: 2,
+    name: "Trần Văn B",
+    attendance: Array(DAYS_IN_MONTH).fill(""),
+  },
+];
 
 export default function Home() {
-  const [employees, setEmployees] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState(1); // id for selected employee
-  const [employeeActivities, setEmployeeActivities] = useState([]);
-  const [employee, setEmployee] = useState(""); // detail for selected employee
-  const [projectName, setProjectName] = useState([]);
-  const [searchActivity, setSearchActivity] = useState("");
+  const [employees, setEmployees] = useState(initialEmployees);
 
-  useEffect(() => {
-    async function fetchEmployees() {
-      const response = await fetch(`${baseURL}employees`);
-      const data = await response.json();
-      setEmployees(data);
-    }
-
-    fetchEmployees();
-  }, []);
-
-  async function fetchActivities() {
-    if (!selectedEmployee) return;
-
-    const response = await fetch(`${baseURL}activities/${selectedEmployee}`);
-    const data = await response.json();
-    setEmployeeActivities(data);
-  }
-
-  useEffect(() => {
-    async function fetchEmployee() {
-      const response = await fetch(`${baseURL}employees/${selectedEmployee}`);
-      const data = await response.json();
-      setEmployee(data);
-    }
-
-    fetchActivities();
-    fetchEmployee();
-  }, [selectedEmployee]);
-
-  // handling search
-  useEffect(() => {
-    async function searchActivityHandler() {
-      const response = await fetch(
-        `${baseURL}activities/${selectedEmployee}?title=${searchActivity}&ProjectIds=${getIdsAsString(
-          projectName
-        )}`
-      );
-      const data = await response.json();
-      setEmployeeActivities(data);
-    }
-    searchActivityHandler();
-  }, [searchActivity]);
-
-  // handling filters
-
-  // async function filterActivities () {
-  //   const response = await fetch(`${baseURL}activities/${selectedEmployee}?ProjectIds=${getIdsAsString(projectName)}`);
-  //   const data = await response.json();
-  //   setEmployeeActivities(data);
-  // }
-  const handleFilter = async () => {
-    const response = await fetch(
-      `${baseURL}activities/${selectedEmployee}?ProjectIds=${getIdsAsString(
-        projectName
-      )}`
-    );
-    const data = await response.json();
-    setEmployeeActivities(data);
+  const handleChange = (empIndex, dayIndex, value) => {
+    const updated = [...employees];
+    updated[empIndex].attendance[dayIndex] = value;
+    setEmployees(updated);
   };
 
-  const duration = employeeActivities.reduce(
-    (acc, activity) => acc + activity.duration,
-    0
-  );
-
-  const totalIncome = employeeActivities.reduce(
-    (acc, activity) => acc + (activity.duration / 60) * employee.rate,
-    0
-  );
-
-  const overtime = calculateOvertime(employeeActivities, employee.rate);
-
-  // console.log(getIdsAsString(projectName), "<<<<< from page");
+  const calculateTotal = (attendance) => {
+    return attendance.reduce((sum, val) => {
+      if (val === "1") return sum + 1;
+      if (val === "0.5") return sum + 0.5;
+      if (val === "CN") return sum + 1;
+      return sum;
+    }, 0);
+  };
 
   return (
-    <main className=" min-h-screen m-6 bg-white p-6 rounded-lg  shadow-2xl">
-      <EmployeeDetail
-        employees={employees}
-        onEmployeeSelect={setSelectedEmployee}
-        employee={employee}
-        employeeActivities={employeeActivities}
-        duration={duration}
-        totalIncome={totalIncome}
-        overtime={overtime}
-      />
+    <main className="min-h-screen p-6 bg-white rounded-lg shadow-2xl">
+      <h1 className="text-2xl font-bold mb-4">
+        BẢNG CHẤM CÔNG THEO THÁNG
+      </h1>
 
-      <TableComponent
-        activities={employeeActivities}
-        selectedEmployee={selectedEmployee}
-        setEmployeeActivities={setEmployeeActivities}
-        fetchActivities={fetchActivities}
-        projectName={projectName}
-        setProjectName={setProjectName}
-        handleFilter={handleFilter}
-        searchActivity={searchActivity}
-        setSearchActivity={setSearchActivity}
-      />
+      <div className="overflow-auto">
+        <table className="border-collapse border w-full text-sm">
+          <thead>
+            <tr>
+              <th className="border p-2 sticky left-0 bg-white">Nhân viên</th>
+              {Array.from({ length: DAYS_IN_MONTH }, (_, i) => (
+                <th key={i} className="border p-2">
+                  {i + 1}
+                </th>
+              ))}
+              <th className="border p-2 font-bold">Tổng công</th>
+            </tr>
+          </thead>
 
-      <div className="flex justify-between mt-4 p-6">
-        <div>
-          <h1 className="text-custom-blue font-bold text-lg">
-            {" "}
-            Total Durasi Overtime
-          </h1>
-          <h1 className="text-custom-blue font-bold text-lg">Total Durasi</h1>
-          <h1 className="text-custom-blue font-black text-xl">
-            Total Pendapatan Overtime
-          </h1>
-          <h1 className="text-custom-blue font-black text-2xl">
-            Total Pendapatan
-          </h1>
-        </div>
+          <tbody>
+            {employees.map((emp, empIndex) => (
+              <tr key={emp.id}>
+                <td className="border p-2 sticky left-0 bg-white font-semibold">
+                  {emp.name}
+                </td>
 
-        <div className="flex flex-col  justify-end items-end">
-          <h1 className="text-custom-blue font-bold text-lg">
-            {convertMinutesToHours(overtime.totalDuration)}
-          </h1>
-          <h1 className="text-custom-blue font-bold text-lg">
-            {convertMinutesToHours(duration)}
-          </h1>
-          <h1 className="text-custom-blue font-black text-xl">
-            {formatRupiah(overtime.totalEarnings)}
-          </h1>
-          <h1 className="text-custom-blue font-black text-2xl">
-            {overtime.totalEarnings > 0
-              ? formatRupiah(totalIncome + overtime.totalEarnings)
-              : formatRupiah(totalIncome)}
-          </h1>
-        </div>
+                {emp.attendance.map((val, dayIndex) => (
+                  <td key={dayIndex} className="border p-1">
+                    <input
+                      className="w-10 text-center border rounded"
+                      value={val}
+                      onChange={(e) =>
+                        handleChange(empIndex, dayIndex, e.target.value)
+                      }
+                      placeholder=""
+                    />
+                  </td>
+                ))}
+
+                <td className="border p-2 font-bold text-center">
+                  {calculateTotal(emp.attendance)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </main>
   );
