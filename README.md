@@ -1,4 +1,4 @@
-# Timesheet Management App
+# HR Bạch Hổ App
 
 The Timesheet Management App is a tool designed to track the activities of freelancers. It allows you to add employees, set their hourly rates in Indonesian Rupiah, and record their activities with details such as activity title, project name, start date, end date, start time, end time, duration, and total hours. Additional features of the app include calculating total income, overtime duration, and overtime income for each employee. It also provides filtering, sorting, pagination, searching, updating, and deleting functionalities for recorded activities. One of the key features of the Timesheet Management App is the ability to export the recorded activities data to Excel. This allows you to easily analyze and share the data with others. The exported Excel file includes all the relevant information about the activities, such as employee details, project name, duration, and total hours. 
 
