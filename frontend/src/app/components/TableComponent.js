@@ -1,25 +1,40 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Sheet from "@mui/joy/Sheet";
 import Table from "@mui/joy/Table";
 import Typography from "@mui/joy/Typography";
 import Box from "@mui/joy/Box";
 
 const DAYS_IN_MONTH = 31;
+const baseURL = process.env.NEXT_PUBLIC_BASE_URL;
 
 export default function TableComponent() {
-  const [employees, setEmployees] = useState([
-    {
-      id: 1,
-      name: "Nguyễn Văn A",
-      attendance: Array(DAYS_IN_MONTH).fill(""),
-    },
-    {
-      id: 2,
-      name: "Trần Văn B",
-      attendance: Array(DAYS_IN_MONTH).fill(""),
-    },
-  ]);
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // fetch nhân viên thật từ backend
+  useEffect(() => {
+    async function fetchEmployees() {
+      try {
+        const res = await fetch(`${baseURL}employees`);
+        const data = await res.json();
+
+        const mapped = data.map((emp) => ({
+          id: emp.id,
+          name: emp.name,
+          attendance: Array(DAYS_IN_MONTH).fill(""),
+        }));
+
+        setEmployees(mapped);
+      } catch (err) {
+        console.error("Fetch employees failed", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEmployees();
+  }, []);
 
   const handleChange = (empIndex, dayIndex, value) => {
     const updated = [...employees];
@@ -34,6 +49,10 @@ export default function TableComponent() {
       if (val === "CN") return sum + 1;
       return sum;
     }, 0);
+
+  if (loading) {
+    return <Typography>Đang tải danh sách nhân viên…</Typography>;
+  }
 
   return (
     <Sheet
